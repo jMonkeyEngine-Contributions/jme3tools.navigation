@@ -1,0 +1,84 @@
+// Gradle build script for jme3tools-navigation Maven artifacts
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+ext {
+    artifact = 'jme3tools-navigation'
+    version = '1.0.0'
+    baseName = "$artifact-$version"
+}
+
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
+dependencies {
+    api 'org.jmonkeyengine:jme3-core:3.3.2-stable'
+}
+
+repositories {
+    jcenter()
+}
+
+tasks.withType(JavaCompile) { // compile-time options:
+    options.compilerArgs << '-Xdiags:verbose'
+    options.compilerArgs << '-Xlint:unchecked'
+    options.deprecation = true
+    options.encoding = 'UTF-8'
+}
+
+// custom tasks for creating source/javadoc JARs
+jar {
+    archiveBaseName = project.ext.baseName
+}
+
+task javadocJar(type: Jar) {
+    archiveBaseName = project.ext.baseName
+    classifier = 'javadoc'
+    dependsOn 'javadoc'
+    description 'Create a JAR of javadoc.'
+    from javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+    archiveBaseName = project.ext.baseName
+    classifier = 'sources'
+    dependsOn 'classes'
+    description 'Create a JAR of sourcecode.'
+    from sourceSets.main.allJava
+}
+
+build.dependsOn('pom')
+task('pom', type: Copy) {
+    dependsOn 'generatePomFileForMavenPublication'
+    from "${buildDir}/publications/maven/pom-default.xml"
+    into "${buildDir}/libs"
+    rename '.*', baseName + '.pom'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId artifact
+            from components.java
+            groupId 'jme3tools.navigation'
+            pom {
+                licenses {
+                    license {
+                        distribution = 'repo'
+                        name = 'New BSD (3-clause) License'
+                        url = 'https://opensource.org/licenses/BSD-3-Clause'
+                    }
+                }
+            }
+            version project.ext.version
+        }
+    }
+}
+
+// add javadoc/source jar tasks as artifacts
+artifacts {
+    archives jar, sourcesJar, javadocJar
+}
